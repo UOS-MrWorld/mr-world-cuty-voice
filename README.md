@@ -116,9 +116,12 @@ python scripts/verify_select.py # 실제 Groq로 발화 13개 검증 → docs/ve
 ### 진행 상황
 
 - [x] 파이프라인 구조 설계
-- [x] 마이크 + VAD 발화 검출 (`scripts/mic_vad.py`)
-- [x] 텍스트 → JSON 명령 변환 (GPT-OSS) + 검증기
+- [x] 텍스트 → JSON 명령 변환 (GPT-OSS) + 검증기 — 실제 Groq로 발화 13개 중 12개 통과 ([결과](docs/verification_result.md))
 - [x] FastAPI 엔드포인트 (`POST /api/v1/voice/command`)
-- [x] 여행상품 선택 연동 검증 (자동 테스트 + 데모 페이지)
+- [x] 자동 테스트 16개 (가짜 응답으로 처리 흐름 검증)
+- [x] 마이크 + VAD 실제 발화 검출 확인 (`scripts/mic_vad.py`)
+- [x] 데모 페이지에서 텍스트 입력으로 상품 선택 확인
+- [ ] 데모 페이지에서 음성 입력으로 상품 선택 확인
+- [ ] 모호한 상품 지칭 시 되묻기
 - [ ] 실제 FE 화면에 연결
 - [ ] 실시간 VAD 스트리밍 (최종 발표)
