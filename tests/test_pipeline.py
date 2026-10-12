@@ -154,3 +154,38 @@ def test_wav_roundtrip_and_format_check():
         w.writeframes(b"\0\0" * 10)
     with pytest.raises(ValueError):
         wav_to_samples(buf.getvalue())
+
+
+# ---------- 7. 구성 전체 흐름 (등급·날짜·다음 단계) ----------
+
+def test_next_action_passes():
+    res = make({"commands": [{"action": "next", "params": {}}]}, "다음 단계로 가줘").handleVoiceCommand(b"wav", CONFIG)
+    assert cmds(res) == [("next", {})]
+
+
+def test_departure_date_future_kept_past_dropped():
+    from datetime import date, timedelta
+    future = (date.today() + timedelta(days=30)).isoformat()
+    res = make({"commands": [{"action": "configure", "params": {"departureDate": future, "guestCount": 2}}]}).handleVoiceCommand(b"wav", CONFIG)
+    assert cmds(res) == [("configure", {"departureDate": future, "guestCount": 2})]
+    res = make({"commands": [{"action": "configure", "params": {"departureDate": "2020-01-01", "guestCount": 2}}]}).handleVoiceCommand(b"wav", CONFIG)
+    assert cmds(res) == [("configure", {"guestCount": 2})]
+    res = make({"commands": [{"action": "configure", "params": {"departureDate": "2027-02-30"}}]}).handleVoiceCommand(b"wav", CONFIG)
+    assert res.commands[0].action == "unknown"
+
+
+def test_drink_option_remove_with_zero_quantity():
+    res = make({"commands": [{"action": "configure", "params": {"drinkOptions": [{"optionId": 2, "quantity": 0}]}}]}).handleVoiceCommand(b"wav", CONFIG)
+    assert cmds(res) == [("configure", {"drinkOptions": [{"optionId": 2, "quantity": 0}]})]
+
+
+def test_parser_sends_today():
+    llm = FakeLLM({"commands": []})
+    CommandParser(groqClient=llm).parse("11월 20일 출발", CONFIG)
+    assert llm.last_user["today"] == date.today().isoformat()
+
+
+def test_blocked_level_explains_reason():
+    res = make({"commands": [{"action": "configure", "params": {"tourLevel": "CLASSIC"}}]}).handleVoiceCommand(b"wav", CONFIG)
+    assert res.commands[0].action == "unknown"
+    assert "클래식" in res.commands[0].params["message"] and "그랜드" in res.commands[0].params["message"]

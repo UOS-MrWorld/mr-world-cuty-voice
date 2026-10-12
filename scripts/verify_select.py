@@ -34,6 +34,9 @@ CASES = [
     ("두 명이요", CONFIG, ["configure"], {"guestCount": 2}),
     ("이걸로 예약할게", CONFIG, [], {}),  # checkout은 pending으로
     ("뒤로 가줘", LIST, ["back"], {}),
+    ("다음 단계로 가줘", CONFIG, ["next"], {}),
+    ("프리미엄으로 하고 커피 추가해줘", CONFIG, ["configure"], {"tourLevel": "PREMIUM", "drinkOptions": [{"optionId": 2, "quantity": 1}]}),
+    ("11월 20일 출발로 해줘", CONFIG, ["configure"], {}),  # 날짜는 아래에서 따로 확인
     ("오늘 점심 뭐 먹지", LIST, ["unknown"], {}),
 ]
 
@@ -48,6 +51,8 @@ def main():
         actions = [c.action for c in res.commands]
         params = {k: v for c in res.commands for k, v in c.params.items()}
         ok = actions == want_actions and all(params.get(k) == v for k, v in want_params.items())
+        if text == "11월 20일 출발로 해줘":
+            ok = ok and str(params.get("departureDate", "")).endswith("-11-20")
         if text == "이걸로 예약할게":
             ok = res.pending.get("action") == "checkout"
         ok_n += ok
