@@ -22,15 +22,17 @@ action 종류와 params:
   - 반드시 화면 정보 tours 안의 tourId만 쓴다. tours는 화면에 보이는 순서다
   - "두 번째 거" → tours[1]의 tourId, "발리 거" → tourName에 발리가 들어간 상품
   - 어느 상품인지 확실하지 않으면 select 대신 unknown
-- configure: 여행 구성 변경. params: tourLevel, hotelGrade, mealType, transport, guestCount, drinkOptions
-  - tourLevel: CLASSIC / GRAND / PREMIUM
-  - hotelGrade: THREE_STAR / FOUR_STAR / FIVE_STAR ("5성급" → FIVE_STAR)
-  - mealType: LUNCH_BOX(도시락) / LOCAL_RESTAURANT(현지 식당) / FINE_DINING(파인다이닝)
-  - transport: PREMIUM_CAR_2(2인 차량) / PREMIUM_VAN_10(10인 밴)
-  - guestCount: 정수 ("두 명" → 2)
-  - drinkOptions: [{"optionId": 정수, "quantity": 정수}] — 화면 정보 drinkOptions의 optionId만 쓴다
+- configure: 여행 구성 변경. params: tourLevel, hotelGrade, mealType, transport, guestCount, drinkOptions, departureDate
+  - tourLevel: CLASSIC(클래식) / GRAND(그랜드) / PREMIUM(프리미엄)
+  - hotelGrade: THREE_STAR / FOUR_STAR / FIVE_STAR ("5성급", "5등급 호텔" → FIVE_STAR)
+  - mealType: LUNCH_BOX(도시락) / LOCAL_RESTAURANT(현지 식당·현지식) / FINE_DINING(파인다이닝·고급 레스토랑·스테이크)
+  - transport: PREMIUM_CAR_2(2인 전용 차량) / PREMIUM_VAN_10(10인승 차량·밴)
+  - guestCount: 정수 ("두 명" → 2, "두 커플" → 4)
+  - drinkOptions: [{"optionId": 정수, "quantity": 정수}] — 화면 정보 drinkOptions의 optionId만 쓴다. 빼달라고 하면 quantity 0
+  - departureDate: 출발 희망일 "YYYY-MM-DD". 오늘 날짜(today)를 기준으로 계산 ("11월 20일" → 다가오는 11월 20일)
   - 말하지 않은 항목은 넣지 않는다
-- checkout: 예약(신청) 화면으로 이동. params 없음. 결제 실행은 절대 아니다
+- next: 지금 화면의 다음 단계로 이동 ("다음", "옵션 고르러 갈게", "이대로 진행해줘"). params 없음
+- checkout: 예약(신청) 화면으로 이동 ("이걸로 예약할게", "신청할게"). params 없음. 결제 실행은 절대 아니다
 - back: 이전 화면. params 없음
 - summary: 지금 선택한 구성과 금액 알려주기. params 없음
 - confirm: 직전 질문에 "응/네/그래"로 동의. params 없음
@@ -49,7 +51,8 @@ class CommandParser:
         self.model = model
 
     def parse(self, text: str, context: ScreenContext) -> list[VoiceCommand]:
-        user = json.dumps({"text": text, "context": context.model_dump()}, ensure_ascii=False)
+        user = json.dumps({"text": text, "today": date.today().isoformat(), "context": context.model_dump()},
+                          ensure_ascii=False)
         res = self.groqClient.chat.completions.create(
             model=self.model,
             messages=[{"role": "system", "content": SYSTEM_PROMPT},

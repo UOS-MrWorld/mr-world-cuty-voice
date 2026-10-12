@@ -61,8 +61,9 @@ LLM이 **화면에 실제로 있는 것 중에서만** 고르게 하려고 FE가
 |---|---|---|
 | search | theme, keyword, maxPrice, startDateFrom, startDateTo | 목록 필터 적용 |
 | select | tourId | 상품 상세로 이동 |
-| configure | tourLevel, hotelGrade, mealType, transport, guestCount, drinkOptions | 구성 화면 값 변경 |
-| checkout | — | 신청 화면으로 이동 (**항상 pending으로 먼저 확인**) |
+| configure | tourLevel, hotelGrade, mealType, transport, guestCount, drinkOptions, departureDate | 등급·호텔·식사·교통·인원·음료·출발일 변경 (상세 화면이면 구성 화면으로 이동) |
+| next | — | 다음 단계 화면으로 (상세 → 구성 → 신청) |
+| checkout | — | 신청 화면으로 이동 (**항상 pending으로 먼저 확인**). 결제는 사용자가 직접 |
 | back | — | 이전 화면 |
 | summary | — | 현재 구성·금액 안내 |
 | cancel | — | 확인 창 닫기 |
@@ -71,6 +72,8 @@ LLM이 **화면에 실제로 있는 것 중에서만** 고르게 하려고 FE가
 - Enum은 BE와 같다: Theme(HONEYMOON/HEALING/GOLF/TREKKING), TourLevel(CLASSIC/GRAND/PREMIUM), HotelGrade, MealType, Transport
 - 한 문장에 명령이 여러 개면 순서대로 여러 개 ("골프 여행 찾아서 첫 번째 거 보여줘")
 - 말하지 않은 항목은 params에 없다 = 변경 없음
+- `departureDate`는 LLM에 오늘 날짜를 같이 줘서 계산하고, 검증기가 형식·미래 날짜만 통과시킨다
+- `drinkOptions`의 quantity 0 = 빼기
 
 ## 4. 안전장치
 
