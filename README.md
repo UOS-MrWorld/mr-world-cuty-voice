@@ -1,55 +1,69 @@
-# CUTY Voice AI
+# mr-world-cuty-voice
 
-**말로 여행 상품을 찾고, 나만의 여행을 구성하는 음성 기반 AI 기능**
+Mr.CUTY(Curate Your Travel) 서비스의 **음성인식 AI 서버**입니다.
+고객이 말로 여행 상품을 검색·선택·구성하고, 신청 화면 직전까지 진행할 수 있도록 음성을 JSON 명령으로 바꿉니다.
 
-CUTY Voice는 기존 GUI 여행 서비스에 음성 인터페이스를 추가하여 고객이 여행 상품을 더 쉽고 자연스럽게 검색하고 선택할 수 있도록 돕는다.
-프로젝트 요구사항에 따라 고객 인터페이스는 GUI를 먼저 구현한 뒤 음성인식 기능을 추가하는 방향으로 확장한다.
-
-## 서비스 소개
-
-고객은 마이크를 통해 원하는 여행 조건을 말할 수 있다.
-
-```text
-"부모님과 갈 만한 편안한 여행 찾아줘"
-"골프 여행 중에서 프리미엄 등급으로 보여줘"
-"이 상품의 호텔을 5성급으로 바꿔줘"
+```
+마이크 → Silero VAD → Groq Whisper → Groq GPT-OSS 120B → 검증 → JSON 명령 → FE → BE
 ```
 
-음성 AI는 고객의 발화를 분석하여 여행 테마, 투어 등급, 인원, 출발일, 호텔, 교통, 식사 등의 조건을 추출한다. 추출한 조건은 기존 여행 상품 검색 및 옵션 구성 기능과 연결된다.
+설계: [docs/pipeline.md](docs/pipeline.md) · M2 결과: [docs/m2.md](docs/m2.md)
 
-## 주요 기능
+## 폴더
 
-- 음성 입력 및 한국어 음성인식(STT)
-- 여행 검색 의도 파악
-- 여행 테마 및 검색 조건 추출
-- 여행 상품 검색
-- 투어 등급·호텔·교통·식사 옵션 변경
-- 고객의 발화가 모호할 때 추가 질문
-- 음성으로 해석한 결과와 검색 결과를 화면에 표시
-- 마이크 권한 거부나 인식 실패 시 GUI·텍스트 입력으로 전환
-
-## 음성 AI 처리 흐름
-
-```text
-음성 입력
-  → 음성 텍스트 변환
-  → 여행 의도와 조건 분석
-  → 여행 상품 API 조회 또는 옵션 변경
-  → 결과를 화면에 표시
-  → 필요한 경우 고객에게 확인
+```
+app/          서버 (클래스도와 같은 이름)
+  main.py        FastAPI 엔드포인트
+  controller.py  VoiceController
+  vad.py         VadDetector
+  stt.py         SttClient
+  parser.py      CommandParser
+  validator.py   CommandValidator
+  models.py      ScreenContext / VoiceCommand / VoiceResponse
+demo/         여행상품 선택 연동 데모 페이지
+tests/        자동 테스트 (Groq 없이 실행)
+scripts/      stt_file.py(파일 STT), mic_vad.py(마이크+VAD), verify_select.py(실제 Groq 연동 검증)
 ```
 
-> 음성 AI가 해석한 내용을 바로 확정하지 않고 상품 선택·옵션 변경·신청과 같이 중요한 동작은 고객이 결과를 확인한 뒤 진행하도록 하는 방향
+## 설치
 
-## 기존 서비스와의 연결
+Python 3.11 권장.
 
-음성 기능은 기존 client와 server의 여행 도메인을 재사용한다.
+```bash
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env            # GROQ_API_KEY 채우기
+```
 
-| 음성 기능 | 연결할 기존 도메인 |
-| --- | --- |
-| 여행 상품 검색·상세 조회 | `tour` |
-| 회원의 이전 여행 조회 | `member` |
-| 여행 신청 시작 | `booking` |
-| 음성 입력 및 AI 해석 | `voice` |
+## 실행
 
-음성 AI는 자연어를 기존 API가 사용할 수 있는 검색 조건과 옵션 값으로 변환하는 역할을 담당한다. 실제 상품 존재 여부, 가격, 권한, 신청 가능 여부는 기존 서버가 다시 검증한다.
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+- 데모: http://localhost:8000/demo/ (🎤 말하기 또는 문장 입력)
+- API 문서: http://localhost:8000/docs
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| POST | /api/v1/voice/command | `audio`(16kHz 모노 WAV) + `context`(ScreenContext JSON) → VoiceResponse |
+| POST | /api/v1/voice/text | 개발용: `{text, context}` → VoiceResponse (VAD·STT 생략) |
+| GET | /health | 상태 확인 |
+
+## 테스트
+
+```bash
+pytest                          # 자동 테스트 16개 (API 키 필요 없음)
+python scripts/verify_select.py # 실제 Groq로 발화 13개 검증 → docs/verification_result.md
+```
+
+## 진행 상황
+
+- [x] 파이프라인 구조 설계
+- [x] 마이크 + VAD 발화 검출 (`scripts/mic_vad.py`)
+- [x] 텍스트 → JSON 명령 변환 (GPT-OSS) + 검증기
+- [x] FastAPI 엔드포인트 (`POST /api/v1/voice/command`)
+- [x] 여행상품 선택 연동 검증 (자동 테스트 + 데모 페이지)
+- [ ] 실제 FE 화면에 연결
+- [ ] 실시간 VAD 스트리밍 (최종 발표)

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mr.CUTY 음성 연동 데모</title>
+<style>
+  :root { --bg:#f7f5f0; --card:#fff; --ink:#1f2328; --muted:#6b6f76; --line:#e3ded3; --accent:#b4532a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 960px; margin: 0 auto; padding: 24px 16px 220px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .filters { font-size: 13px; color: var(--muted); margin-bottom: 12px; min-height: 18px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; cursor:pointer; }
+  .card .no { font-size:12px; color:var(--muted); }
+  .card .name { font-weight:600; margin: 4px 0; }
+  .card .meta, .meta { font-size: 13px; color: var(--muted); }
+  .card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .detail { margin-top: 16px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display:none; }
+  .detail.show { display:block; }
+  .bar { position: fixed; left:0; right:0; bottom:0; background: var(--card); border-top:1px solid var(--line); padding: 12px 16px; }
+  .bar-in { max-width: 960px; margin: 0 auto; display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+  button { font: inherit; border:1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 8px 14px; cursor:pointer; }
+  button.mic { background: var(--accent); color:#fff; border-color: var(--accent); min-width: 120px; }
+  button.mic.rec { background: #8a2b12; }
+  input[type=text] { flex: 1; min-width: 180px; font: inherit; padding: 8px 10px; border:1px solid var(--line); border-radius: 8px; }
+  .log { width:100%; font-size: 13px; color: var(--muted); }
+  .log b { color: var(--ink); }
+  pre { background: #f1eee7; border-radius: 8px; padding: 10px; font-size: 12px; overflow:auto; max-height: 140px; margin: 6px 0 0; }
+  .confirm { display:none; gap:8px; align-items:center; font-size:14px; }
+  .confirm.show { display:flex; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mr.CUTY 음성 → 여행상품 선택 연동 데모</h1>
+  <div class="sub">말하거나 문장을 입력하면 AI 서버가 JSON 명령으로 바꾸고, 이 화면이 명령대로 움직입니다. 결제는 음성으로 실행하지 않습니다.</div>
+  <div class="filters" id="filters"></div>
+  <div class="grid" id="grid"></div>
+  <div class="detail" id="detail"></div>
+</main>
+
+<div class="bar"><div class="bar-in">
+  <button class="mic" id="mic">🎤 말하기</button>
+  <input type="text" id="text" placeholder="또는 문장 입력: 두 번째 거 보여줘">
+  <button id="send">보내기</button>
+  <div class="confirm" id="confirm"><span id="confirmMsg"></span><button id="yes">네</button><button id="no">아니요</button></div>
+  <div class="log" id="log">대기 중</div>
+</div></div>
+
+<script>
+const API = location.origin;  // uvicorn에서 /demo/ 로 열었을 때 같은 서버로 보낸다
+const ALL_TOURS = [
+  { tourId: 11, tourName: "발리 허니문 5일", theme: "HONEYMOON", price: 1890000, startDate: "2026-11-14" },
+  { tourId: 23, tourName: "제주 효도 힐링 3일", theme: "HEALING", price: 690000, startDate: "2026-10-24" },
+  { tourId: 37, tourName: "다낭 골프 4일", theme: "GOLF", price: 1290000, startDate: "2026-12-05" },
+  { tourId: 42, tourName: "알프스 트레킹 7일", theme: "TREKKING", price: 3200000, startDate: "2027-01-10" },
+];
+const THEME_KO = { HONEYMOON: "허니문", HEALING: "효도", GOLF: "골프", TREKKING: "트레킹" };
+const state = { screen: "list", tours: ALL_TOURS.slice(), selectedId: null, filters: {}, pendingAction: null };
+const $ = id => document.getElementById(id);
+
+function render() {
+  const grid = $("grid");
+  grid.innerHTML = "";
+  state.tours.forEach((t, i) => {
+    const el = document.createElement("div");
+    el.className = "card" + (t.tourId === state.selectedId ? " selected" : "");
+    el.innerHTML = `<div class="no">${i + 1}번째 · tourId ${t.tourId}</div><div class="name">${t.tourName}</div>
+      <div class="meta">${THEME_KO[t.theme]} · ${t.price.toLocaleString()}원 · ${t.startDate} 출발</div>`;
+    el.onclick = () => select(t.tourId);
+    grid.appendChild(el);
+  });
+  if (!state.tours.length) grid.innerHTML = '<div class="meta">조건에 맞는 상품이 없어요.</div>';
+  const f = state.filters, parts = [];
+  if (f.theme) parts.push("테마 " + THEME_KO[f.theme]);
+  if (f.maxPrice) parts.push(f.maxPrice.toLocaleString() + "원 이하");
+  if (f.keyword) parts.push("'" + f.keyword + "'");
+  if (f.startDateFrom) parts.push(f.startDateFrom + " ~ " + f.startDateTo);
+  $("filters").textContent = parts.length ? "선택한 조건: " + parts.join(" · ") : "";
+  const t = ALL_TOURS.find(x => x.tourId === state.selectedId);
+  $("detail").className = "detail" + (t && state.screen === "detail" ? " show" : "");
+  if (t) $("detail").innerHTML = `<b>상품 상세</b> — ${t.tourName} (tourId ${t.tourId})<br>
+    <span class="meta">${THEME_KO[t.theme]} · ${t.price.toLocaleString()}원 · ${t.startDate} 출발</span>`;
+}
+
+function select(id) { state.selectedId = id; state.screen = "detail"; render(); }
+
+function search(p) {
+  state.filters = p;
+  state.tours = ALL_TOURS.filter(t =>
+    (!p.theme || t.theme === p.theme) &&
+    (!p.maxPrice || t.price <= p.maxPrice) &&
+    (!p.keyword || t.tourName.includes(p.keyword)) &&
+    (!p.startDateFrom || (t.startDate >= p.startDateFrom && t.startDate <= p.startDateTo)));
+  state.screen = "list"; state.selectedId = null; render();
+}
+
+// 서버 명령 → 화면 동작. 실제 FE에서도 이 자리에 붙이면 된다.
+function apply(res) {
+  $("log").innerHTML = `<b>인식:</b> ${res.recognizedText || "(없음)"}<pre>${JSON.stringify(res, null, 2)}</pre>`;
+  state.pendingAction = null;
+  for (const c of res.commands) {
+    if (c.action === "search") search(c.params);
+    else if (c.action === "select") select(c.params.tourId);
+    else if (c.action === "back") { state.screen = "list"; render(); }
+    else if (c.action === "checkout") alert("신청·결제 화면으로 이동 (결제 실행은 버튼으로만)");
+    else if (c.action === "unknown") $("log").insertAdjacentHTML("afterbegin", `⚠️ ${c.params.message}<br>`);
+  }
+  if (res.pending && res.pending.action) {
+    state.pendingAction = res.pending.action;
+    $("confirmMsg").textContent = res.pending.message;
+    $("confirm").classList.add("show");
+  } else $("confirm").classList.remove("show");
+}
+
+const context = () => ({ screen: state.screen, tours: state.tours, availableTourLevels: [], drinkOptions: [], pendingAction: state.pendingAction });
+
+async function call(path, init) {
+  try {
+    const r = await fetch(API + path, init);
+    if (!r.ok) throw new Error(r.status + " " + (await r.text()));
+    apply(await r.json());
+  } catch (e) { $("log").textContent = "오류: " + e.message; }
+}
+
+function sendText(text) {
+  text = (text ?? $("text").value).trim();
+  if (!text) return;
+  call("/api/v1/voice/text", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, context: context() }) });
+}
+
+// ---- 녹음: 16kHz 모노 WAV로 만들어 보낸다 (서버 VAD가 이 형식만 받음) ----
+let rec = null;
+async function startRec() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true } });
+  const ctx = new AudioContext({ sampleRate: 16000 });
+  const src = ctx.createMediaStreamSource(stream);
+  const node = ctx.createScriptProcessor(4096, 1, 1);
+  const chunks = [];
+  node.onaudioprocess = e => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  src.connect(node); node.connect(ctx.destination);
+  rec = { stream, ctx, node, chunks };
+}
+function toWav(chunks) {
+  const len = chunks.reduce((a, c) => a + c.length, 0), pcm = new Int16Array(len);
+  let o = 0;
+  for (const c of chunks) for (let i = 0; i < c.length; i++) pcm[o++] = Math.max(-1, Math.min(1, c[i])) * 32767;
+  const buf = new ArrayBuffer(44 + pcm.length * 2), v = new DataView(buf);
+  const w = (p, s) => [...s].forEach((ch, i) => v.setUint8(p + i, ch.charCodeAt(0)));
+  w(0, "RIFF"); v.setUint32(4, 36 + pcm.length * 2, true); w(8, "WAVEfmt "); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 16000, true); v.setUint32(28, 32000, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, pcm.length * 2, true);
+  new Int16Array(buf, 44).set(pcm);
+  return new Blob([buf], { type: "audio/wav" });
+}
+async function stopRec() {
+  const { stream, ctx, node, chunks } = rec; rec = null;
+  node.disconnect(); stream.getTracks().forEach(t => t.stop()); await ctx.close();
+  const form = new FormData();
+  form.append("audio", toWav(chunks), "speech.wav");
+  form.append("context", JSON.stringify(context()));
+  $("log").textContent = "인식 중...";
+  await call("/api/v1/voice/command", { method: "POST", body: form });
+}
+
+$("mic").onclick = async () => {
+  if (!rec) {
+    try { await startRec(); } catch (e) { $("log").textContent = "마이크를 쓸 수 없어요: " + e.message; return; }
+    $("mic").classList.add("rec"); $("mic").textContent = "⏹ 그만 말하기";
+  } else { $("mic").classList.remove("rec"); $("mic").textContent = "🎤 말하기"; await stopRec(); }
+};
+$("send").onclick = () => sendText();
+$("text").onkeydown = e => { if (e.key === "Enter") sendText(); };
+$("yes").onclick = () => sendText("응");
+$("no").onclick = () => { state.pendingAction = null; $("confirm").classList.remove("show"); };
+render();
+</script>
+</body>
+</html>
