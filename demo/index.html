@@ -51,7 +51,7 @@
 </div></div>
 
 <script>
-const API = location.origin;  // uvicorn에서 /demo/ 로 열었을 때 같은 서버로 보낸다
+const API = location.origin;
 const ALL_TOURS = [
   { tourId: 11, tourName: "발리 허니문 5일", theme: "HONEYMOON", price: 1890000, startDate: "2026-11-14" },
   { tourId: 23, tourName: "제주 효도 힐링 3일", theme: "HEALING", price: 690000, startDate: "2026-10-24" },
@@ -98,7 +98,6 @@ function search(p) {
   state.screen = "list"; state.selectedId = null; render();
 }
 
-// 서버 명령 → 화면 동작. 실제 FE에서도 이 자리에 붙이면 된다.
 function apply(res) {
   $("log").innerHTML = `<b>인식:</b> ${res.recognizedText || "(없음)"}<pre>${JSON.stringify(res, null, 2)}</pre>`;
   state.pendingAction = null;
@@ -133,7 +132,6 @@ function sendText(text) {
     body: JSON.stringify({ text, context: context() }) });
 }
 
-// ---- 녹음: 16kHz 모노 WAV로 만들어 보낸다 (서버 VAD가 이 형식만 받음) ----
 let rec = null;
 async function startRec() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true } });

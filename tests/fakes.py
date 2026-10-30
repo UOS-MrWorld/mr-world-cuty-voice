@@ -1,8 +1,6 @@
-"""테스트용 가짜 Groq/VAD — 인터넷·API 키 없이 파이프라인을 검증한다."""
 import json
 from types import SimpleNamespace
 
-# FE 여행상품 목록 화면(/tours)에 보이는 순서 그대로 보낸다고 가정한 샘플
 SAMPLE_TOURS = [
     {"tourId": 11, "tourName": "발리 허니문 5일", "theme": "HONEYMOON", "price": 1890000},
     {"tourId": 23, "tourName": "제주 효도 힐링 3일", "theme": "HEALING", "price": 690000},
@@ -12,7 +10,6 @@ SAMPLE_TOURS = [
 
 
 class FakeLLM:
-    """chat.completions.create(...)가 미리 정한 JSON을 돌려준다."""
     def __init__(self, answer):
         self.answer = answer
         self.last_user = None
