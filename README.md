@@ -62,7 +62,7 @@ CUTY Voice는 기존 GUI 여행 서비스에 음성 인터페이스를 추가하
 마이크 → Silero VAD → Groq Whisper → Groq GPT-OSS 120B → 검증 → JSON 명령 → FE → BE
 ```
 
-설계: [docs/pipeline.md](docs/pipeline.md) · M2 결과: [docs/m2.md](docs/m2.md)
+설계: [docs/pipeline.md](docs/pipeline.md) · API 명세: [docs/api.md](docs/api.md) · M2 결과: [docs/m2.md](docs/m2.md)
 
 ### 폴더
 
@@ -109,7 +109,7 @@ uvicorn app.main:app --reload --port 8000
 ### 테스트
 
 ```bash
-pytest                          # 자동 테스트 20개 (API 키 필요 없음)
+pytest                          # 자동 테스트 24개 (API 키 필요 없음)
 python scripts/verify_select.py # 실제 Groq로 발화 16개 검증 → docs/verification_result.md
 ```
 
@@ -118,7 +118,7 @@ python scripts/verify_select.py # 실제 Groq로 발화 16개 검증 → docs/ve
 - [x] 파이프라인 구조 설계
 - [x] 텍스트 → JSON 명령 변환 (GPT-OSS) + 검증기 — 실제 Groq로 발화 13개 중 12개 통과 ([결과](docs/verification_result.md))
 - [x] FastAPI 엔드포인트 (`POST /api/v1/voice/command`)
-- [x] 자동 테스트 20개 (가짜 응답으로 처리 흐름 검증)
+- [x] 자동 테스트 24개 (가짜 응답으로 처리 흐름 검증)
 - [x] 마이크 + VAD 실제 발화 검출 확인 (`scripts/mic_vad.py`)
 - [x] 데모 페이지에서 텍스트 입력으로 상품 선택 확인
 - [ ] 데모 페이지에서 음성 입력으로 상품 선택 확인

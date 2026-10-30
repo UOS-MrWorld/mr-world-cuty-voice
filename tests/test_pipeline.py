@@ -189,3 +189,57 @@ def test_blocked_level_explains_reason():
     res = make({"commands": [{"action": "configure", "params": {"tourLevel": "CLASSIC"}}]}).handleVoiceCommand(b"wav", CONFIG)
     assert res.commands[0].action == "unknown"
     assert "클래식" in res.commands[0].params["message"] and "그랜드" in res.commands[0].params["message"]
+
+
+# ---------- 8. 공통 에러 응답 형식 (API 명세서) ----------
+
+def _err(r, status, code):
+    body = r.json()
+    assert r.status_code == status, body
+    assert body["status"] == status and body["code"] == code
+    assert body["message"] and body["path"].startswith("/") and "T" in body["timestamp"]
+    return body
+
+
+def test_error_format_bad_input(monkeypatch):
+    monkeypatch.setattr(main, "_controller", make({"commands": []}))
+    client = TestClient(main.app)
+    _err(client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x")}, data={"context": "{"}), 400, "INVALID_INPUT")
+    _err(client.post("/api/v1/voice/command", data={"context": "{}"}), 400, "INVALID_INPUT")          # audio 누락
+    _err(client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"")}), 400, "INVALID_INPUT")  # 빈 파일
+    _err(client.post("/api/v1/voice/text", json={"text": "  "}), 400, "INVALID_INPUT")
+    _err(client.get("/api/v1/nope"), 404, "RESOURCE_NOT_FOUND")
+
+
+def test_error_format_wav_and_groq_failures(monkeypatch):
+    import groq
+    import httpx
+
+    class BadWavVAD:
+        def extractSpeech(self, audio):
+            raise ValueError("16kHz / mono / 16bit WAV만 지원합니다")
+
+    class DownSTT:
+        def transcribe(self, speech):
+            raise groq.APIConnectionError(request=httpx.Request("POST", "https://api.groq.com"))
+
+    client = TestClient(main.app)
+    monkeypatch.setattr(main, "_controller", VoiceController(vad=BadWavVAD(), stt=FakeSTT("x"),
+                                                             parser=CommandParser(groqClient=FakeLLM({})), validator=CommandValidator()))
+    body = _err(client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x")}), 400, "INVALID_INPUT")
+    assert "16kHz" in body["message"]
+    monkeypatch.setattr(main, "_controller", VoiceController(vad=FakeVAD(), stt=DownSTT(),
+                                                             parser=CommandParser(groqClient=FakeLLM({})), validator=CommandValidator()))
+    _err(client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x")}), 503, "VOICE_SERVICE_UNAVAILABLE")
+
+
+def test_error_format_unexpected(monkeypatch):
+    class Boom:
+        def extractSpeech(self, audio):
+            raise RuntimeError("boom")
+    monkeypatch.setattr(main, "_controller", VoiceController(vad=Boom(), stt=FakeSTT("x"),
+                                                             parser=CommandParser(groqClient=FakeLLM({})), validator=CommandValidator()))
+    client = TestClient(main.app, raise_server_exceptions=False)
+    r = client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x")}, headers={"Origin": "http://localhost:5173"})
+    _err(r, 500, "INTERNAL_SERVER_ERROR")
+    assert r.headers.get("access-control-allow-origin") == "http://localhost:5173"  # 브라우저가 에러 내용을 읽을 수 있어야 함
