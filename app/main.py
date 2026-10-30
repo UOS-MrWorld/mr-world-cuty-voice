@@ -1,8 +1,12 @@
 import json
+import logging
 import os
+import threading
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 import groq
+import numpy as np
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -14,12 +18,34 @@ from .errors import ApiError
 from .models import ScreenContext, VoiceResponse
 
 load_dotenv()
-app = FastAPI(title="Mr.CUTY Voice AI Server")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+log = logging.getLogger("voice")
+
+
+def _warmup():
+    try:
+        vad = controller().vad
+        if hasattr(vad, "load"):
+            vad.load()
+            vad.speechProbs(np.zeros(1600, dtype=np.float32))
+        log.info("warm-up done")
+    except Exception:
+        log.exception("warm-up failed")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    threading.Thread(target=_warmup, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="Mr.CUTY Voice AI Server", lifespan=lifespan)
 errors.register(app)
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:8000").split(","),
+    allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX") or None,
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )

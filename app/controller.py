@@ -1,8 +1,13 @@
+import logging
+import time
+
 from .models import ScreenContext, VoiceCommand, VoiceResponse
 from .parser import CommandParser
 from .stt import SttClient
 from .vad import VadDetector
 from .validator import CommandValidator
+
+log = logging.getLogger("voice")
 
 NEEDS_CONFIRM = {"checkout": "예약 신청 화면으로 이동할까요?"}
 
@@ -15,12 +20,19 @@ class VoiceController:
         self.validator = validator or CommandValidator()
 
     def handleVoiceCommand(self, audio: bytes, context: ScreenContext) -> VoiceResponse:
+        t0 = time.perf_counter()
         speech = self.vad.extractSpeech(audio)
+        t1 = time.perf_counter()
         if not speech:
             return VoiceResponse(recognizedText="", commands=[VoiceCommand(
                 action="unknown", params={"message": "말소리가 들리지 않았어요. 다시 말씀해 주세요."})])
         text = self.stt.transcribe(speech)
-        return self._fromText(text, context)
+        t2 = time.perf_counter()
+        response = self._fromText(text, context)
+        t3 = time.perf_counter()
+        log.info("voice/command vad=%dms stt=%dms llm=%dms total=%dms",
+                 (t1 - t0) * 1000, (t2 - t1) * 1000, (t3 - t2) * 1000, (t3 - t0) * 1000)
+        return response
 
     def _fromText(self, text: str, context: ScreenContext) -> VoiceResponse:
         if not text:

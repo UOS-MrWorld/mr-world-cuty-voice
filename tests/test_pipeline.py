@@ -224,3 +224,18 @@ def test_error_format_unexpected(monkeypatch):
     r = client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x")}, headers={"Origin": "http://localhost:5173"})
     _err(r, 500, "INTERNAL_SERVER_ERROR")
     assert r.headers.get("access-control-allow-origin") == "http://localhost:5173"
+
+
+def test_vad_onnx_speech_and_silence():
+    import os
+
+    import numpy as np
+
+    from app.vad import SR, VadDetector, samples_to_wav, wav_to_samples
+    vad = VadDetector()
+    wav = open(os.path.join(os.path.dirname(__file__), "data", "speech_ko.wav"), "rb").read()
+    stamps = vad.timestamps(wav_to_samples(wav))
+    assert len(stamps) == 1 and 0.6 * SR < stamps[0]["start"] < 1.1 * SR and stamps[0]["end"] < 3.2 * SR
+    speech = vad.extractSpeech(wav)
+    assert 0 < len(speech) < len(wav)
+    assert vad.extractSpeech(samples_to_wav(np.zeros(SR * 2, dtype=np.float32))) == b""
