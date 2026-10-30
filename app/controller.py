@@ -1,11 +1,9 @@
-"""VoiceController: VAD → STT → Parser → Validator 순서로 처리하고 VoiceResponse를 만든다."""
 from .models import ScreenContext, VoiceCommand, VoiceResponse
 from .parser import CommandParser
 from .stt import SttClient
 from .vad import VadDetector
 from .validator import CommandValidator
 
-# 실수로 실행되면 곤란한 명령은 바로 실행하지 않고 한 번 더 묻는다
 NEEDS_CONFIRM = {"checkout": "예약 신청 화면으로 이동할까요?"}
 
 
@@ -25,7 +23,6 @@ class VoiceController:
         return self._fromText(text, context)
 
     def _fromText(self, text: str, context: ScreenContext) -> VoiceResponse:
-        """STT 이후 단계. 텍스트로 바로 테스트할 때도 이 함수를 쓴다."""
         if not text:
             return VoiceResponse(recognizedText="", commands=[VoiceCommand(
                 action="unknown", params={"message": "잘 못 알아들었어요. 다시 말씀해 주세요."})])
@@ -34,7 +31,7 @@ class VoiceController:
         out, pending = [], {}
         for c in commands:
             if c.action == "confirm":
-                if context.pendingAction:  # "응" → 기다리던 명령 실행
+                if context.pendingAction:
                     out.append(VoiceCommand(action=context.pendingAction))
                 continue
             if c.action in NEEDS_CONFIRM:

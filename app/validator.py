@@ -1,8 +1,3 @@
-"""CommandValidator: LLM이 만든 명령을 화면 정보·Enum 기준으로 걸러낸다.
-
-LLM은 가끔 없는 값을 지어낸다. 여기서 막아야 FE/BE에 이상한 값이 안 간다.
-비즈니스 규칙(허니문 + CLASSIC 금지 등)은 BE가 검증한다 — 여기서는 '형식'만 본다.
-"""
 import re
 from datetime import date
 
@@ -30,7 +25,7 @@ class CommandValidator:
             checked = self._check(c, context)
             if checked:
                 out.append(checked)
-        if not out:  # 하나도 못 살리면 unknown 하나
+        if not out:
             out = [VoiceCommand(action="unknown", params={"message": UNKNOWN_MSG})]
         return out
 
@@ -39,7 +34,6 @@ class CommandValidator:
             return None
         p = {k: v for k, v in c.params.items() if v is not None}
 
-        # Enum 값 확인: 모르는 값은 버린다
         for key, allowed in self.enumValues.items():
             if key in p and p[key] not in allowed:
                 p.pop(key)
@@ -51,7 +45,6 @@ class CommandValidator:
                  if k in ("theme", "keyword", "maxPrice", "startDateFrom", "startDateTo")}
 
         elif c.action == "select":
-            # 연동 핵심: 화면에 실제로 있는 상품만 고를 수 있다
             ids = [t.get("tourId") for t in ctx.tours]
             if p.get("tourId") not in ids:
                 return VoiceCommand(action="unknown",
@@ -77,7 +70,7 @@ class CommandValidator:
             p = {k: v for k, v in p.items() if k in
                  ("tourLevel", "hotelGrade", "mealType", "transport", "guestCount", "drinkOptions", "departureDate")}
             if not p:
-                if blockedLevel:  # 고를 수 없는 등급만 말한 경우: 이유를 알려준다
+                if blockedLevel:
                     return VoiceCommand(action="unknown", params={
                         "message": f"이 상품은 {LEVEL_KO.get(blockedLevel, blockedLevel)} 등급을 고를 수 없어요. "
                                    f"{', '.join(LEVEL_KO.get(x, x) for x in ctx.availableTourLevels)} 중에서 골라 주세요."})
@@ -91,7 +84,6 @@ class CommandValidator:
 
     @staticmethod
     def _futureDate(value) -> bool:
-        """"YYYY-MM-DD" 형식이고 오늘 이후인 실제 날짜만 통과."""
         if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
             return False
         try:

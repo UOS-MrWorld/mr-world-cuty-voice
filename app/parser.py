@@ -1,4 +1,3 @@
-"""CommandParser: 텍스트 + 화면 정보 → VoiceCommand 목록 (Groq GPT-OSS 120B)."""
 import calendar
 import json
 import os
@@ -72,7 +71,6 @@ class CommandParser:
         return commands
 
     def convertMonth(self, month: str, today: date | None = None) -> tuple:
-        """"10" → ("2026-10-01", "2026-10-31"). 이미 지난 달이면 내년으로 본다."""
         today = today or date.today()
         m = int(month)
         year = today.year + (1 if m < today.month else 0)
