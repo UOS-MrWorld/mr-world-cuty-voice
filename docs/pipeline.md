@@ -8,7 +8,7 @@
      ▼
 ┌─────────────────── Voice AI Server (Python, FastAPI) ───────────────────┐
 │ VoiceController.handleVoiceCommand(audio, context)                      │
-│   ① VadDetector.extractSpeech   Silero VAD — 말한 구간만 잘라냄          │
+│   ① VadDetector.extractSpeech   Silero VAD(ONNX) — 말한 구간만 잘라냄    │
 │   ② SttClient.transcribe        Groq whisper-large-v3-turbo — 음성→텍스트 │
 │   ③ CommandParser.parse         Groq gpt-oss-120b — 텍스트+화면→명령 JSON │
 │   ④ CommandValidator.validate   화면에 있는 값·Enum만 통과               │

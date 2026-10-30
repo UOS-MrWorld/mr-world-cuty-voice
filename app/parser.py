@@ -58,6 +58,8 @@ class CommandParser:
                       {"role": "user", "content": user}],
             response_format={"type": "json_object"},
             temperature=0,
+            reasoning_effort=os.getenv("LLM_REASONING_EFFORT", "low"),
+            include_reasoning=False,
         )
         try:
             raw = json.loads(res.choices[0].message.content)

@@ -3,8 +3,5 @@ python-dotenv
 fastapi
 uvicorn
 python-multipart
-silero-vad
-sounddevice
 numpy
-pytest
-httpx
+onnxruntime

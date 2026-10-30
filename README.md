@@ -87,9 +87,21 @@ Python 3.11 권장.
 ```bash
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env            # GROQ_API_KEY 채우기
+pip install -r requirements-dev.txt   # 서버만 돌릴 땐 requirements.txt
+cp .env.example .env                  # GROQ_API_KEY 채우기
 ```
+
+- 서버 VAD는 Silero VAD ONNX 모델(`app/assets/silero_vad.onnx`, MIT)을 onnxruntime으로 실행한다. torch가 필요 없다.
+- `scripts/mic_vad.py`(마이크 실시간 테스트)만 torch 기반 `silero-vad` 패키지를 쓰므로 `requirements-dev.txt`에 포함했다.
+
+### 배포 (Render)
+
+1. Render → New → Blueprint → 이 레포 선택 (`render.yaml` 사용)
+2. 환경변수 입력: `GROQ_API_KEY`, `CORS_ORIGINS`(FE 배포 주소, 쉼표로 여러 개)
+3. 배포 후 `https://<서비스명>.onrender.com/health` 확인
+4. FE 배포 환경변수 `VITE_VOICE_API_BASE_URL=https://<서비스명>.onrender.com/api/v1`
+
+무료 플랜은 15분간 요청이 없으면 잠든다. 발표 전에는 `/health`로 미리 깨워 둔다.
 
 ### 실행
 
@@ -109,7 +121,7 @@ uvicorn app.main:app --reload --port 8000
 ### 테스트
 
 ```bash
-pytest                          # 자동 테스트 24개 (API 키 필요 없음)
+pytest                          # 자동 테스트 25개 (API 키 필요 없음)
 python scripts/verify_select.py # 실제 Groq로 발화 16개 검증 → docs/verification_result.md
 ```
 
@@ -118,7 +130,7 @@ python scripts/verify_select.py # 실제 Groq로 발화 16개 검증 → docs/ve
 - [x] 파이프라인 구조 설계
 - [x] 텍스트 → JSON 명령 변환 (GPT-OSS) + 검증기 — 실제 Groq로 발화 13개 중 12개 통과 ([결과](docs/verification_result.md))
 - [x] FastAPI 엔드포인트 (`POST /api/v1/voice/command`)
-- [x] 자동 테스트 24개 (가짜 응답으로 처리 흐름 검증)
+- [x] 자동 테스트 25개 (가짜 응답으로 처리 흐름 검증)
 - [x] 마이크 + VAD 실제 발화 검출 확인 (`scripts/mic_vad.py`)
 - [x] 데모 페이지에서 텍스트 입력으로 상품 선택 확인
 - [ ] 데모 페이지에서 음성 입력으로 상품 선택 확인
