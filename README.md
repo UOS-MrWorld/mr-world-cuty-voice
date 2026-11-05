@@ -75,7 +75,6 @@ app/          서버 (클래스도와 같은 이름)
   parser.py      CommandParser
   validator.py   CommandValidator
   models.py      ScreenContext / VoiceCommand / VoiceResponse
-demo/         여행상품 선택 연동 데모 페이지
 tests/        자동 테스트 (Groq 없이 실행)
 scripts/      stt_file.py(파일 STT), mic_vad.py(마이크+VAD), verify_select.py(실제 Groq 연동 검증)
 ```
@@ -109,13 +108,11 @@ cp .env.example .env                  # GROQ_API_KEY 채우기
 uvicorn app.main:app --reload --port 8000
 ```
 
-- 데모: http://localhost:8000/demo/ (🎤 말하기 또는 문장 입력)
 - API 문서: http://localhost:8000/docs
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | POST | /api/v1/voice/command | `audio`(16kHz 모노 WAV) + `context`(ScreenContext JSON) → VoiceResponse |
-| POST | /api/v1/voice/text | 개발용: `{text, context}` → VoiceResponse (VAD·STT 생략) |
 | GET | /health | 상태 확인 |
 
 ### 테스트
