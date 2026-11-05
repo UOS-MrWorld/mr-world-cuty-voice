@@ -108,7 +108,7 @@ def test_unknown_action_from_llm_is_dropped():
     assert res.commands[0].action == "unknown"
 
 
-def test_api_voice_command_and_text(monkeypatch):
+def test_api_voice_command(monkeypatch):
     fake = make({"commands": [{"action": "select", "params": {"tourId": 11}}]}, "첫 번째 거")
     monkeypatch.setattr(main, "_controller", fake)
     client = TestClient(main.app)
@@ -116,8 +116,6 @@ def test_api_voice_command_and_text(monkeypatch):
     r = client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x", "audio/wav")},
                     data={"context": json.dumps(LIST.model_dump(), ensure_ascii=False)})
     assert r.status_code == 200 and r.json()["commands"] == [{"action": "select", "params": {"tourId": 11}}]
-    r = client.post("/api/v1/voice/text", json={"text": "첫 번째 거", "context": LIST.model_dump()})
-    assert r.status_code == 200 and r.json()["recognizedText"] == "첫 번째 거"
     assert client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x")}, data={"context": "{"}).status_code == 400
 
 
@@ -162,6 +160,11 @@ def test_drink_option_remove_with_zero_quantity():
     assert cmds(res) == [("configure", {"drinkOptions": [{"optionId": 2, "quantity": 0}]})]
 
 
+def test_drink_option_quantity_over_100_is_blocked():
+    res = make({"commands": [{"action": "configure", "params": {"drinkOptions": [{"optionId": 1, "quantity": 101}]}}]}).handleVoiceCommand(b"wav", CONFIG)
+    assert res.commands[0].action == "unknown"
+
+
 def test_parser_sends_today():
     llm = FakeLLM({"commands": []})
     CommandParser(groqClient=llm).parse("11월 20일 출발", CONFIG)
@@ -188,7 +191,6 @@ def test_error_format_bad_input(monkeypatch):
     _err(client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"x")}, data={"context": "{"}), 400, "INVALID_INPUT")
     _err(client.post("/api/v1/voice/command", data={"context": "{}"}), 400, "INVALID_INPUT")
     _err(client.post("/api/v1/voice/command", files={"audio": ("a.wav", b"")}), 400, "INVALID_INPUT")
-    _err(client.post("/api/v1/voice/text", json={"text": "  "}), 400, "INVALID_INPUT")
     _err(client.get("/api/v1/nope"), 404, "RESOURCE_NOT_FOUND")
 
 

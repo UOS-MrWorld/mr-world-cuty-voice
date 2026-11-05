@@ -27,7 +27,7 @@ action 종류와 params:
   - mealType: LUNCH_BOX(도시락) / LOCAL_RESTAURANT(현지 식당·현지식) / FINE_DINING(파인다이닝·고급 레스토랑·스테이크)
   - transport: PREMIUM_CAR_2(2인 전용 차량) / PREMIUM_VAN_10(10인승 차량·밴)
   - guestCount: 정수 ("두 명" → 2, "두 커플" → 4)
-  - drinkOptions: [{"optionId": 정수, "quantity": 정수}] — 화면 정보 drinkOptions의 optionId만 쓴다. 빼달라고 하면 quantity 0
+  - drinkOptions: [{"optionId": 정수, "quantity": 0~100 정수}] — 화면 정보 drinkOptions의 optionId만 쓴다. 빼달라고 하면 quantity 0
   - departureDate: 출발 희망일 "YYYY-MM-DD". 오늘 날짜(today)를 기준으로 계산 ("11월 20일" → 다가오는 11월 20일)
   - 말하지 않은 항목은 넣지 않는다
 - next: 지금 화면의 다음 단계로 이동 ("다음", "옵션 고르러 갈게", "이대로 진행해줘"). params 없음
