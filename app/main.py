@@ -9,8 +9,7 @@ import groq
 import numpy as np
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from . import errors
 from .controller import VoiceController
@@ -93,18 +92,3 @@ async def voice_command(audio: UploadFile = File(...), context: str = Form("{}")
         return _run(controller().handleVoiceCommand, data, ctx)
     except ValueError as e:
         raise ApiError(400, str(e))
-
-
-class TextRequest(BaseModel):
-    text: str
-    context: ScreenContext = ScreenContext()
-
-
-@app.post("/api/v1/voice/text", response_model=VoiceResponse)
-def voice_text(req: TextRequest):
-    if not req.text.strip():
-        raise ApiError(400, "text가 비어 있습니다.")
-    return _run(controller()._fromText, req.text, req.context)
-
-
-app.mount("/demo", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "..", "demo"), html=True), name="demo")

@@ -36,10 +36,6 @@ Response 200
 action: `search` · `select` · `configure` · `next` · `checkout`(항상 pending으로 먼저 확인) · `back` · `summary` · `cancel` · `unknown`
 — 각 params는 [pipeline.md](pipeline.md) 3장 참고. 알아듣지 못한 경우도 에러가 아니라 200 + `unknown`으로 응답한다.
 
-## POST /api/v1/voice/text — 문장으로 명령 변환 (개발·검증용)
-
-`application/json` — `{ "text": "두 번째 거 보여줘", "context": { ... } }` → 응답은 위와 같다. (VAD·STT 생략)
-
 ## GET /health — 상태 확인
 
 `{ "status": "ok" }` — Groq를 호출하지 않는다. 배포 서버 깨우기(keep-alive)에 사용.
@@ -58,7 +54,7 @@ action: `search` · `select` · `configure` · `next` · `checkout`(항상 pendi
 
 | status | code | 언제 |
 |---|---|---|
-| 400 | INVALID_INPUT | audio 누락·빈 파일·10MB 초과, WAV 형식 아님, context JSON 오류, text 비어 있음 |
+| 400 | INVALID_INPUT | audio 누락·빈 파일·10MB 초과, WAV 형식 아님, context JSON 오류 |
 | 404 | RESOURCE_NOT_FOUND | 없는 경로 |
 | 500 | INTERNAL_SERVER_ERROR | 예상하지 못한 서버 오류 |
 | 503 | VOICE_SERVICE_UNAVAILABLE | 외부 음성 모델(Groq) 연결 실패·요청 한도 초과 |

@@ -62,7 +62,7 @@ class CommandValidator:
                 ok_ids = {d.get("optionId") for d in ctx.drinkOptions}
                 p["drinkOptions"] = [d for d in p["drinkOptions"]
                                      if isinstance(d, dict) and d.get("optionId") in ok_ids
-                                     and isinstance(d.get("quantity"), int) and d["quantity"] >= 0]
+                                     and isinstance(d.get("quantity"), int) and 0 <= d["quantity"] <= 100]
                 if not p["drinkOptions"]:
                     p.pop("drinkOptions")
             if "departureDate" in p and not self._futureDate(p["departureDate"]):
