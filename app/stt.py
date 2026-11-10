@@ -5,7 +5,7 @@ class SttClient:
     def __init__(self, groqClient=None, model: str = "whisper-large-v3-turbo"):
         if groqClient is None:
             from groq import Groq
-            groqClient = Groq(api_key=os.getenv("GROQ_API_KEY"))
+            groqClient = Groq(api_key=os.getenv("GROQ_API_KEY"), timeout=25.0, max_retries=1)
         self.groqClient = groqClient
         self.model = model
 

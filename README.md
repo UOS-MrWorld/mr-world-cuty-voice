@@ -96,9 +96,11 @@ cp .env.example .env                  # GROQ_API_KEY 채우기
 ### 배포 (Render)
 
 1. Render → New → Blueprint → 이 레포 선택 (`render.yaml` 사용)
-2. 환경변수 입력: `GROQ_API_KEY`, `CORS_ORIGINS`(FE 배포 주소, 쉼표로 여러 개)
+2. 환경변수 입력: `GROQ_API_KEY`, Spring 서버와 같은 `JWT_SECRET`, `CORS_ORIGINS`(FE 배포 주소, 쉼표로 여러 개)
 3. 배포 후 `https://<서비스명>.onrender.com/health` 확인
 4. FE 배포 환경변수 `VITE_VOICE_API_BASE_URL=https://<서비스명>.onrender.com/api/v1`
+
+운영 환경에서는 Spring Access Token을 검증하며 사용자별 분당 요청 수를 제한한다. `ENVIRONMENT=production`, `VOICE_REQUESTS_PER_MINUTE`를 설정하고 `JWT_SECRET`을 프론트 코드나 저장소에 넣지 않는다.
 
 무료 플랜은 15분간 요청이 없으면 잠든다. 발표 전에는 `/health`로 미리 깨워 둔다.
 
@@ -132,5 +134,5 @@ python scripts/verify_select.py # 실제 Groq로 발화 16개 검증 → docs/ve
 - [x] 데모 페이지에서 텍스트 입력으로 상품 선택 확인
 - [ ] 데모 페이지에서 음성 입력으로 상품 선택 확인
 - [ ] 모호한 상품 지칭 시 되묻기
-- [ ] 실제 FE 화면에 연결
+- [x] 실제 FE 화면에 연결
 - [ ] 실시간 VAD 스트리밍 (최종 발표)

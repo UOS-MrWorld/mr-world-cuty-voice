@@ -12,6 +12,12 @@ services:
         value: 3.11.9
       - key: GROQ_API_KEY
         sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: VOICE_REQUESTS_PER_MINUTE
+        value: 10
       - key: CORS_ORIGINS
         sync: false
       - key: LLM_REASONING_EFFORT

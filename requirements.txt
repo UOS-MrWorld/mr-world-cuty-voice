@@ -1,7 +1,7 @@
-groq
-python-dotenv
-fastapi
-uvicorn
-python-multipart
-numpy
-onnxruntime
+groq==1.7.0
+python-dotenv==1.2.4
+fastapi==0.162.2
+uvicorn==0.54.0
+python-multipart==0.0.33
+numpy==2.4.6
+onnxruntime==1.31.1
