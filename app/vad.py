@@ -14,6 +14,8 @@ def wav_to_samples(data: bytes) -> np.ndarray:
     with wave.open(io.BytesIO(data), "rb") as w:
         if w.getframerate() != SR or w.getnchannels() != 1 or w.getsampwidth() != 2:
             raise ValueError("16kHz / mono / 16bit WAV만 지원합니다")
+        if w.getnframes() > SR * 20:
+            raise ValueError("음성은 20초 이하만 지원합니다")
         pcm = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
     return pcm.astype(np.float32) / 32768.0
 

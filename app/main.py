@@ -7,11 +7,12 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import groq
 import numpy as np
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, Header, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from . import errors
+from .auth import authenticate, enforce_rate_limit
 from .controller import VoiceController
 from .errors import ApiError
 from .models import ScreenContext, VoiceResponse
@@ -43,7 +44,9 @@ errors.register(app)
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:8000").split(","),
+    allow_origins=[origin.strip() for origin in os.getenv(
+        "CORS_ORIGINS", "http://localhost:5173,http://localhost:3000,http://localhost:8000"
+    ).split(",") if origin.strip()],
     allow_origin_regex=os.getenv("CORS_ORIGIN_REGEX") or None,
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
@@ -81,7 +84,15 @@ def health():
 
 
 @app.post("/api/v1/voice/command", response_model=VoiceResponse)
-async def voice_command(audio: UploadFile = File(...), context: str = Form("{}")):
+async def voice_command(
+    audio: UploadFile = File(...),
+    context: str = Form("{}"),
+    authorization: str | None = Header(default=None),
+):
+    claims = authenticate(authorization)
+    enforce_rate_limit(str(claims.get("sub", "unknown")))
+    if audio.content_type not in {"audio/wav", "audio/x-wav", "application/octet-stream", None}:
+        raise ApiError(400, "WAV 오디오만 지원합니다.")
     data = await audio.read()
     if not data:
         raise ApiError(400, "오디오 파일이 비어 있습니다.")

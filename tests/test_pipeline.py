@@ -14,6 +14,19 @@ CONFIG = ScreenContext(screen="configure", availableTourLevels=["GRAND", "PREMIU
                        drinkOptions=[{"optionId": 1, "name": "샴페인"}, {"optionId": 2, "name": "커피"}])
 
 
+def test_production_voice_requires_valid_access_token(monkeypatch):
+    from app.auth import authenticate
+    from app.errors import ApiError
+    import pytest
+
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.setenv("JWT_SECRET", "Y3V0eS10ZXN0LW9ubHktand0LWtleS1tdXN0LWJlLWxvbmctZW5vdWdo")
+    with pytest.raises(ApiError):
+        authenticate(None)
+    with pytest.raises(ApiError):
+        authenticate("Bearer invalid")
+
+
 def make(llm_answer, text="테스트", speech=b"speech"):
     return VoiceController(vad=FakeVAD(speech), stt=FakeSTT(text),
                            parser=CommandParser(groqClient=FakeLLM(llm_answer)),
